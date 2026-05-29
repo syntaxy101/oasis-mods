@@ -22,6 +22,20 @@ if (-not $javaOk) {
     $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("PATH", "User")
     Write-Host "Java 21 installed!"
 }
+$javaExe = (Get-Command java -ErrorAction SilentlyContinue)
+if ($javaExe) {
+    $javaPath = $javaExe.Source
+} else {
+    $javaPath = Get-ChildItem "C:\Program Files\Eclipse Adoptium" -Recurse -Filter "java.exe" -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
+    if (-not $javaPath) {
+        $javaPath = Get-ChildItem "C:\Program Files\Java" -Recurse -Filter "java.exe" -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
+    }
+}
+if (-not $javaPath) {
+    Write-Host "ERROR: Java executable not found. Please restart PowerShell and run the script again."
+    exit
+}
+Write-Host "Using Java at: $javaPath"
 $launcherProfiles = "$env:APPDATA\.minecraft\launcher_profiles.json"
 $neoforgeInstalled = $false
 if (Test-Path $launcherProfiles) {
@@ -34,7 +48,7 @@ if (-not $neoforgeInstalled) {
     $neoforgeInstaller = "$env:TEMP\neoforge-installer.jar"
     Invoke-WebRequest -Uri "https://maven.neoforged.net/releases/net/neoforged/neoforge/21.1.228/neoforge-21.1.228-installer.jar" -OutFile $neoforgeInstaller
     Write-Host "IMPORTANT: A window will open - click Install Client then OK. Come back here when done."
-    Start-Process java -Wait -ArgumentList "-jar $neoforgeInstaller"
+    Start-Process $javaPath -Wait -ArgumentList "-jar $neoforgeInstaller"
     Remove-Item $neoforgeInstaller -Force
 } else {
     Write-Host "NeoForge 21.1.228 already installed."
